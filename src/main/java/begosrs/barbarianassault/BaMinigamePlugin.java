@@ -80,6 +80,7 @@ import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.chat.ChatColorType;
+import net.runelite.client.chat.ChatCommandManager;
 import net.runelite.client.chat.ChatMessageBuilder;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.chat.QueuedMessage;
@@ -109,6 +110,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -142,6 +144,11 @@ public class BaMinigamePlugin extends Plugin
 	private static final String[] BARBARIAN_ASSAULT_CONFIGS = {
 			  "showTimer", "showHealerBars", "waveTimes"
 	};
+	private static final String ATTACKER_POINTS_COMMAND_STRING = "!attacker";
+	private static final String DEFENDER_POINTS_COMMAND_STRING = "!defender";
+	private static final String COLLECTOR_POINTS_COMMAND_STRING = "!collector";
+	private static final String HEALER_POINTS_COMMAND_STRING = "!healer";
+	private static final String ROLE_POINTS_COMMAND_STRING = "!ba";
 
 	@Inject
 	private Client client;
@@ -178,6 +185,8 @@ public class BaMinigamePlugin extends Plugin
 	private TeamHealthBarOverlay teamHealthBarOverlay;
 	@Inject
 	private BaMinigameInputListener inputListener;
+	@Inject
+	private ChatCommandManager chatCommandManager;
 
 	@Getter
 	private final List<GameObject> hoppers = new ArrayList<>(2);
@@ -241,12 +250,17 @@ public class BaMinigamePlugin extends Plugin
 
 		keyManager.registerKeyListener(inputListener);
 
+		chatCommandManager.registerCommand(ATTACKER_POINTS_COMMAND_STRING, this::rolePointsLookup);
+		chatCommandManager.registerCommand(DEFENDER_POINTS_COMMAND_STRING, this::rolePointsLookup);
+		chatCommandManager.registerCommand(COLLECTOR_POINTS_COMMAND_STRING, this::rolePointsLookup);
+		chatCommandManager.registerCommand(HEALER_POINTS_COMMAND_STRING, this::rolePointsLookup);
+		chatCommandManager.registerCommand(ROLE_POINTS_COMMAND_STRING, this::rolesPointsLookup);
+
 		if (config.showGroundItemHighlights())
 		{
 			setGroundItemsPluginLists();
 		}
 		disableBarbarianAssaultPluginFeatures();
-
 	}
 
 	@Override
@@ -284,6 +298,12 @@ public class BaMinigamePlugin extends Plugin
 
 		lastListen = null;
 		lastListenItemId = 0;
+
+		chatCommandManager.unregisterCommand(ATTACKER_POINTS_COMMAND_STRING);
+		chatCommandManager.unregisterCommand(DEFENDER_POINTS_COMMAND_STRING);
+		chatCommandManager.unregisterCommand(COLLECTOR_POINTS_COMMAND_STRING);
+		chatCommandManager.unregisterCommand(HEALER_POINTS_COMMAND_STRING);
+		chatCommandManager.unregisterCommand(ROLE_POINTS_COMMAND_STRING);
 
 		restoreGroundItemsPluginLists();
 		restoreBarbarianAssaultPluginFeatures();
@@ -419,7 +439,8 @@ public class BaMinigamePlugin extends Plugin
 					}
 					case "hideHealerTeammatesHealth":
 					{
-						if (wave != null && wave.getRole() == Role.HEALER) {
+						if (wave != null && wave.getRole() == Role.HEALER)
+						{
 							setHealerTeammatesHealthDisplay();
 						}
 						break;
@@ -863,7 +884,8 @@ public class BaMinigamePlugin extends Plugin
 				final PointsMode pointsMode = config.showRewardPointsMode();
 				if (pointsMode == PointsMode.WAVE || pointsMode == PointsMode.WAVE_ROUND)
 				{
-					ChatMessageBuilder wavePoints = wave.getWavePoints(colorful);
+					boolean boost = config.includeKadarianHardDiaryPointsBoost() && client.getVar(Varbits.DIARY_KANDARIN_HARD) == 1;
+					ChatMessageBuilder wavePoints = wave.getWavePoints(colorful, boost);
 					announce(wavePoints);
 				}
 
@@ -909,7 +931,8 @@ public class BaMinigamePlugin extends Plugin
 			final PointsMode pointsMode = config.showRewardPointsMode();
 			if (pointsMode == PointsMode.ROUND || pointsMode == PointsMode.WAVE_ROUND)
 			{
-				ChatMessageBuilder roundPoints = round.getRoundPoints(colorful);
+				boolean boost = config.includeKadarianHardDiaryPointsBoost() && client.getVar(Varbits.DIARY_KANDARIN_HARD) == 1;
+				ChatMessageBuilder roundPoints = round.getRoundPoints(colorful, boost);
 				announce(roundPoints);
 			}
 
@@ -938,7 +961,8 @@ public class BaMinigamePlugin extends Plugin
 				// wave has started at ba ingamebit == 1, but role is not set
 				wave.setRole(role);
 				setCallFlashColor(role);
-				if (role == Role.HEALER) {
+				if (role == Role.HEALER)
+				{
 					setHealerTeammatesHealthDisplay();
 				}
 				runnerTickTimer.setDisplaying(displayTickTimer);
@@ -957,7 +981,8 @@ public class BaMinigamePlugin extends Plugin
 		if (role != null)
 		{
 			setCallFlashColor(role);
-			if (role == Role.HEALER) {
+			if (role == Role.HEALER)
+			{
 				setHealerTeammatesHealthDisplay();
 			}
 		}
@@ -1540,7 +1565,8 @@ public class BaMinigamePlugin extends Plugin
 		{
 			teammatesHealth.setHidden(!teammatesHealthHotkeyPressed);
 		}
-		else {
+		else
+		{
 			teammatesHealth.setHidden(false);
 		}
 	}
@@ -1558,8 +1584,90 @@ public class BaMinigamePlugin extends Plugin
 	void onTeammatesHealthHotkeyChanged(boolean pressed)
 	{
 		this.teammatesHealthHotkeyPressed = pressed;
-		if (wave != null && wave.getRole() == Role.HEALER) {
+		if (wave != null && wave.getRole() == Role.HEALER)
+		{
 			setHealerTeammatesHealthDisplay();
 		}
 	}
+
+	private void rolePointsLookup(ChatMessage chatMessage, String message)
+	{
+		if (!config.chatCommands())
+		{
+			return;
+		}
+
+		Role role;
+		message = message.toLowerCase(Locale.ROOT);
+		switch (message)
+		{
+			case ATTACKER_POINTS_COMMAND_STRING:
+				role = Role.ATTACKER;
+				break;
+			case DEFENDER_POINTS_COMMAND_STRING:
+				role = Role.DEFENDER;
+				break;
+			case COLLECTOR_POINTS_COMMAND_STRING:
+				role = Role.COLLECTOR;
+				break;
+			case HEALER_POINTS_COMMAND_STRING:
+				role = Role.HEALER;
+				break;
+			default:
+				return;
+		}
+
+		String points = String.valueOf(role.getPoints(client));
+
+		String response = new ChatMessageBuilder()
+				  .append(ChatColorType.NORMAL)
+				  .append(role.getName() + " points: ")
+				  .append(ChatColorType.HIGHLIGHT)
+				  .append(points)
+				  .append(ChatColorType.NORMAL)
+				  .build();
+
+		final MessageNode messageNode = chatMessage.getMessageNode();
+		messageNode.setRuneLiteFormatMessage(response);
+		chatMessageManager.update(messageNode);
+		client.refreshChat();
+	}
+
+	private void rolesPointsLookup(ChatMessage chatMessage, String message)
+	{
+		if (!config.chatCommands())
+		{
+			return;
+		}
+
+		String attackerPoints = String.valueOf(Role.ATTACKER.getPoints(client));
+		String defenderPoints = String.valueOf(Role.DEFENDER.getPoints(client));
+		String collectorPoints = String.valueOf(Role.COLLECTOR.getPoints(client));
+		String healerPoints = String.valueOf(Role.HEALER.getPoints(client));
+
+		String response = new ChatMessageBuilder()
+				  .append(ChatColorType.NORMAL)
+				  .append(Role.ATTACKER.getName() + ": ")
+				  .append(ChatColorType.HIGHLIGHT)
+				  .append(attackerPoints)
+				  .append(ChatColorType.NORMAL)
+				  .append("  " + Role.DEFENDER.getName() + ": ")
+				  .append(ChatColorType.HIGHLIGHT)
+				  .append(defenderPoints)
+				  .append(ChatColorType.NORMAL)
+				  .append("  " + Role.COLLECTOR.getName() + ": ")
+				  .append(ChatColorType.HIGHLIGHT)
+				  .append(collectorPoints)
+				  .append(ChatColorType.NORMAL)
+				  .append("  " + Role.HEALER.getName() + ": ")
+				  .append(ChatColorType.HIGHLIGHT)
+				  .append(healerPoints)
+				  .build();
+
+		final MessageNode messageNode = chatMessage.getMessageNode();
+		messageNode.setRuneLiteFormatMessage(response);
+		chatMessageManager.update(messageNode);
+		client.refreshChat();
+	}
+
 }

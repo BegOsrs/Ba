@@ -25,6 +25,7 @@
 package begosrs.barbarianassault;
 
 import begosrs.barbarianassault.timer.Timer;
+import com.google.inject.Inject;
 import lombok.Getter;
 import net.runelite.client.chat.ChatMessageBuilder;
 
@@ -44,6 +45,9 @@ class Round
 			  "Hp",
 			  "Wrong poison",
 	};
+
+	@Inject
+	private BaMinigameConfig config;
 
 	@Getter
 	private final int startingWave;
@@ -108,7 +112,7 @@ class Round
 		return startingWave - 1 + getNumberOfWaves() == Round.ENDING_WAVE;
 	}
 
-	ChatMessageBuilder getRoundPoints(boolean colorful)
+	ChatMessageBuilder getRoundPoints(boolean colorful, boolean boost)
 	{
 		ChatMessageBuilder message = new ChatMessageBuilder();
 		for (int i = 0; i < Role.values().length; i++)
@@ -122,7 +126,12 @@ class Round
 			Role role = Role.values()[i];
 			String roleName = role.getName();
 			Color roleColor = role.getColor();
-			String points = String.valueOf(Math.max(0, rolesPoints[i]));
+			int pts = Math.max(0, rolesPoints[i]);
+			if (boost)
+			{
+				pts *= 1.1;
+			}
+			String points = String.valueOf(pts);
 			message.append(roleName + ": ");
 			if (colorful)
 			{

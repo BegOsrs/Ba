@@ -77,10 +77,21 @@ public interface BaMinigameConfig extends Config
 		return true;
 	}
 
+	@ConfigItem(
+			  keyName = "chatCommands",
+			  name = "Role chat commands",
+			  description = "Type in !attacker, !defender, !collector, !healer or !ba to check your role points",
+			  position = 4
+	)
+	default boolean chatCommands()
+	{
+		return true;
+	}
+
 	@ConfigSection(
 			  name = "In-game",
 			  description = "Configurations related to features inside a barbarian assault game",
-			  position = 4,
+			  position = 5,
 			  closedByDefault = true
 	)
 	String inGameSection = "inGameSection";
@@ -587,11 +598,23 @@ public interface BaMinigameConfig extends Config
 	}
 
 	@ConfigItem(
+			  keyName = "includeHardDiaryPointsBoost",
+			  name = "Include Kandarin hard diary boost",
+			  description = "Include Kandarin hard diary 10% point boost when displaying role points",
+			  section = postGameSection,
+			  position = 2
+	)
+	default boolean includeKadarianHardDiaryPointsBoost()
+	{
+		return true;
+	}
+
+	@ConfigItem(
 			  keyName = "showRewardsBreakdownMode",
 			  name = "Rewards breakdown",
 			  description = "Gives summary of advanced points breakdown in the chat after each wave and/or round",
 			  section = postGameSection,
-			  position = 2
+			  position = 3
 	)
 	default RewardsBreakdownMode showRewardsBreakdownMode()
 	{

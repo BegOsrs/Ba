@@ -26,6 +26,7 @@
 package begosrs.barbarianassault;
 
 import begosrs.barbarianassault.api.BaSpriteID;
+import begosrs.barbarianassault.api.BaVarbits;
 import begosrs.barbarianassault.api.widgets.BaWidgetInfo;
 import com.google.common.collect.ImmutableMap;
 import lombok.AllArgsConstructor;
@@ -42,19 +43,19 @@ public enum Role
 	ATTACKER("Attacker", BaMinigamePlugin.RED,
 			  BaWidgetInfo.BA_ATTACKER_WAVE_TEXT, BaWidgetInfo.BA_ATTACKER_LISTEN_TOP_TEXT, BaWidgetInfo.BA_HORN_OF_GLORY_COLLECTOR_LISTEN_TEXT,
 			  BaWidgetInfo.BA_ATTACKER_CALL_TEXT, BaWidgetInfo.BA_ATTACKER_CALL_FLASH, BaWidgetInfo.BA_HORN_OF_GLORY_COLLECTOR_LISTEN_TEXT, BaWidgetInfo.BA_ATTACKER_ROLE_TEXT,
-			  BaWidgetInfo.BA_ATTACKER_ROLE_SPRITE, BaSpriteID.BA_COLLECTOR_ICON, "Collector"),
+			  BaWidgetInfo.BA_ATTACKER_ROLE_SPRITE, BaSpriteID.BA_COLLECTOR_ICON, "Collector", BaVarbits.BA_ATTACKER_ROLE_POINTS),
 	DEFENDER("Defender", BaMinigamePlugin.LIGHT_BLUE,
 			  BaWidgetInfo.BA_DEFENDER_WAVE_TEXT, BaWidgetInfo.BA_DEFENDER_LISTEN_TEXT, BaWidgetInfo.BA_HORN_OF_GLORY_HEALER_LISTEN_TEXT,
 			  BaWidgetInfo.BA_DEFENDER_CALL_TEXT, BaWidgetInfo.BA_DEFENDER_CALL_FLASH, BaWidgetInfo.BA_HORN_OF_GLORY_HEALER_LISTEN_TEXT, BaWidgetInfo.BA_DEFENDER_ROLE_TEXT,
-			  BaWidgetInfo.BA_DEFENDER_ROLE_SPRITE, BaSpriteID.BA_HEALER_ICON, "Healer"),
+			  BaWidgetInfo.BA_DEFENDER_ROLE_SPRITE, BaSpriteID.BA_HEALER_ICON, "Healer", BaVarbits.BA_DEFENDER_ROLE_POINTS),
 	COLLECTOR("Collector", Color.YELLOW,
 			  BaWidgetInfo.BA_COLLECTOR_WAVE_TEXT, BaWidgetInfo.BA_COLLECTOR_LISTEN_TEXT, BaWidgetInfo.BA_HORN_OF_GLORY_ATTACKER_LISTEN_TEXT,
 			  BaWidgetInfo.BA_COLLECTOR_CALL_TEXT, BaWidgetInfo.BA_COLLECTOR_CALL_FLASH, BaWidgetInfo.BA_HORN_OF_GLORY_ATTACKER_LISTEN_TEXT, BaWidgetInfo.BA_COLLECTOR_ROLE_TEXT,
-			  BaWidgetInfo.BA_COLLECTOR_ROLE_SPRITE, BaSpriteID.BA_ATTACKER_ICON, "Attacker"),
+			  BaWidgetInfo.BA_COLLECTOR_ROLE_SPRITE, BaSpriteID.BA_ATTACKER_ICON, "Attacker", BaVarbits.BA_COLLECTOR_ROLE_POINTS),
 	HEALER("Healer", BaMinigamePlugin.DARK_GREEN,
 			  BaWidgetInfo.BA_HEALER_WAVE_TEXT, BaWidgetInfo.BA_HEALER_LISTEN_TEXT, BaWidgetInfo.BA_HORN_OF_GLORY_DEFENDER_LISTEN_TEXT,
 			  BaWidgetInfo.BA_HEALER_CALL_TEXT, BaWidgetInfo.BA_HEALER_CALL_FLASH, BaWidgetInfo.BA_HORN_OF_GLORY_DEFENDER_LISTEN_TEXT, BaWidgetInfo.BA_HEALER_ROLE_TEXT,
-			  BaWidgetInfo.BA_HEALER_ROLE_SPRITE, BaSpriteID.BA_DEFENDER_ICON, "Defender");
+			  BaWidgetInfo.BA_HEALER_ROLE_SPRITE, BaSpriteID.BA_DEFENDER_ICON, "Defender", BaVarbits.BA_HEALER_ROLE_POINTS);
 
 	@Getter
 	private final String name;
@@ -80,6 +81,8 @@ public enum Role
 	private final int partnerSpriteId;
 	@Getter
 	private final String partnerRoleName;
+	@Getter
+	private final BaVarbits pointsVarBit;
 
 	@Override
 	public String toString()
@@ -150,5 +153,11 @@ public enum Role
 		}
 
 		return null;
+	}
+
+	public int getPoints(Client client) {
+		final int constant = 512;
+		int multiplier = client.getVarbitValue(BaVarbits.BA_ROLE_POINTS_MULTIPLIER.getId());
+		return client.getVarbitValue(pointsVarBit.getId()) + constant * multiplier;
 	}
 }

@@ -27,6 +27,7 @@ package begosrs.barbarianassault;
 
 import begosrs.barbarianassault.api.widgets.BaWidgetInfo;
 import begosrs.barbarianassault.timer.Timer;
+import com.google.inject.Inject;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -86,6 +87,8 @@ public class Wave
 	private static final int MAXIMUM_HP_HEALED = 504;
 
 	private final Client client;
+	@Inject
+	private BaMinigameConfig config;
 
 	@Getter
 	private final int number;
@@ -190,7 +193,7 @@ public class Wave
 		}
 	}
 
-	ChatMessageBuilder getWavePoints(boolean colorful)
+	ChatMessageBuilder getWavePoints(boolean colorful, boolean boost)
 	{
 		ChatMessageBuilder message = new ChatMessageBuilder();
 		for (int i = 0; i < Role.values().length; i++)
@@ -202,7 +205,12 @@ public class Wave
 			Role role = Role.values()[i];
 			String roleName = role.getName();
 			Color roleColor = role.getColor();
-			String points = String.valueOf(Math.max(0, rolesPoints[i]));
+			int pts = Math.max(0, rolesPoints[i]);
+			if (boost)
+			{
+				pts *= 1.1;
+			}
+			String points = String.valueOf(pts);
 			message.append(roleName + ": ");
 			if (colorful)
 			{
