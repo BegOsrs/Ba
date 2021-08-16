@@ -884,7 +884,7 @@ public class BaMinigamePlugin extends Plugin
 				final PointsMode pointsMode = config.showRewardPointsMode();
 				if (pointsMode == PointsMode.WAVE || pointsMode == PointsMode.WAVE_ROUND)
 				{
-					boolean boost = config.includeKadarianHardDiaryPointsBoost() && client.getVar(Varbits.DIARY_KANDARIN_HARD) == 1;
+					boolean boost = config.kandarinHardDiaryPointsBoost() && client.getVar(Varbits.DIARY_KANDARIN_HARD) == 1;
 					ChatMessageBuilder wavePoints = wave.getWavePoints(colorful, boost);
 					announce(wavePoints);
 				}
@@ -931,7 +931,7 @@ public class BaMinigamePlugin extends Plugin
 			final PointsMode pointsMode = config.showRewardPointsMode();
 			if (pointsMode == PointsMode.ROUND || pointsMode == PointsMode.WAVE_ROUND)
 			{
-				boolean boost = config.includeKadarianHardDiaryPointsBoost() && client.getVar(Varbits.DIARY_KANDARIN_HARD) == 1;
+				boolean boost = config.kandarinHardDiaryPointsBoost() && client.getVar(Varbits.DIARY_KANDARIN_HARD) == 1;
 				ChatMessageBuilder roundPoints = round.getRoundPoints(colorful, boost);
 				announce(roundPoints);
 			}

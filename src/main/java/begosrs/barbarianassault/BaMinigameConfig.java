@@ -598,13 +598,13 @@ public interface BaMinigameConfig extends Config
 	}
 
 	@ConfigItem(
-			  keyName = "includeHardDiaryPointsBoost",
-			  name = "Include Kandarin hard diary boost",
+			  keyName = "kandarinHardDiaryPointsBoost",
+			  name = "Kandarin hard diary boost",
 			  description = "Include Kandarin hard diary 10% point boost when displaying role points",
 			  section = postGameSection,
 			  position = 2
 	)
-	default boolean includeKadarianHardDiaryPointsBoost()
+	default boolean kandarinHardDiaryPointsBoost()
 	{
 		return true;
 	}
