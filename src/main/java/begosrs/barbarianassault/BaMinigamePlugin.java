@@ -100,13 +100,11 @@ import net.runelite.client.util.ColorUtil;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
 import net.runelite.http.api.chat.ChatClient;
-import net.runelite.http.api.chat.Roles;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -254,7 +252,7 @@ public class BaMinigamePlugin extends Plugin
 
 		keyManager.registerKeyListener(inputListener);
 
-		chatCommandManager.registerCommandAsync(ROLE_POINTS_COMMAND_STRING, this::rolesPointsLookup, this::rolesSubmit);
+		/*chatCommandManager.registerCommandAsync(ROLE_POINTS_COMMAND_STRING, this::rolesPointsLookup, this::rolesSubmit);*/
 
 		if (config.showGroundItemHighlights())
 		{
@@ -299,7 +297,7 @@ public class BaMinigamePlugin extends Plugin
 		lastListen = null;
 		lastListenItemId = 0;
 
-		chatCommandManager.unregisterCommand(ROLE_POINTS_COMMAND_STRING);
+		/*chatCommandManager.unregisterCommand(ROLE_POINTS_COMMAND_STRING);*/
 
 		restoreGroundItemsPluginLists();
 		restoreBarbarianAssaultPluginFeatures();
@@ -1586,7 +1584,7 @@ public class BaMinigamePlugin extends Plugin
 		}
 	}
 
-	private void rolesPointsLookup(ChatMessage chatMessage, String message)
+	/*private void rolesPointsLookup(ChatMessage chatMessage, String message)
 	{
 		if (!config.chatCommands())
 		{
@@ -1667,6 +1665,6 @@ public class BaMinigamePlugin extends Plugin
 		});
 
 		return true;
-	}
+	}*/
 
 }

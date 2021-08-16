@@ -77,16 +77,16 @@ public interface BaMinigameConfig extends Config
 		return true;
 	}
 
-	@ConfigItem(
+	/*@ConfigItem(
 			  keyName = "chatCommands",
-			  name = "Role chat commands",
-			  description = "Type in !attacker, !defender, !collector, !healer or !ba to check your role points",
+			  name = "Roles chat command",
+			  description = "Type in !ba to check your roles points",
 			  position = 4
 	)
 	default boolean chatCommands()
 	{
 		return true;
-	}
+	}*/
 
 	@ConfigSection(
 			  name = "In-game",
