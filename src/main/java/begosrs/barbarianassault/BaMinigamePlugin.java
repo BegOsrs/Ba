@@ -86,6 +86,7 @@ import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ChatInput;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.input.KeyManager;
@@ -98,11 +99,14 @@ import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 import net.runelite.client.util.ColorUtil;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
+import net.runelite.http.api.chat.ChatClient;
+import net.runelite.http.api.chat.Roles;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -110,9 +114,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -144,10 +148,6 @@ public class BaMinigamePlugin extends Plugin
 	private static final String[] BARBARIAN_ASSAULT_CONFIGS = {
 			  "showTimer", "showHealerBars", "waveTimes"
 	};
-	private static final String ATTACKER_POINTS_COMMAND_STRING = "!attacker";
-	private static final String DEFENDER_POINTS_COMMAND_STRING = "!defender";
-	private static final String COLLECTOR_POINTS_COMMAND_STRING = "!collector";
-	private static final String HEALER_POINTS_COMMAND_STRING = "!healer";
 	private static final String ROLE_POINTS_COMMAND_STRING = "!ba";
 
 	@Inject
@@ -168,6 +168,8 @@ public class BaMinigamePlugin extends Plugin
 	private ConfigManager configManager;
 	@Inject
 	private KeyManager keyManager;
+	@Inject
+	private ChatClient chatClient;
 
 	@Inject
 	private MenuEntrySwapper menuEntrySwapper;
@@ -187,6 +189,8 @@ public class BaMinigamePlugin extends Plugin
 	private BaMinigameInputListener inputListener;
 	@Inject
 	private ChatCommandManager chatCommandManager;
+	@Inject
+	private ScheduledExecutorService executor;
 
 	@Getter
 	private final List<GameObject> hoppers = new ArrayList<>(2);
@@ -250,11 +254,7 @@ public class BaMinigamePlugin extends Plugin
 
 		keyManager.registerKeyListener(inputListener);
 
-		chatCommandManager.registerCommand(ATTACKER_POINTS_COMMAND_STRING, this::rolePointsLookup);
-		chatCommandManager.registerCommand(DEFENDER_POINTS_COMMAND_STRING, this::rolePointsLookup);
-		chatCommandManager.registerCommand(COLLECTOR_POINTS_COMMAND_STRING, this::rolePointsLookup);
-		chatCommandManager.registerCommand(HEALER_POINTS_COMMAND_STRING, this::rolePointsLookup);
-		chatCommandManager.registerCommand(ROLE_POINTS_COMMAND_STRING, this::rolesPointsLookup);
+		chatCommandManager.registerCommandAsync(ROLE_POINTS_COMMAND_STRING, this::rolesPointsLookup, this::rolesSubmit);
 
 		if (config.showGroundItemHighlights())
 		{
@@ -299,10 +299,6 @@ public class BaMinigamePlugin extends Plugin
 		lastListen = null;
 		lastListenItemId = 0;
 
-		chatCommandManager.unregisterCommand(ATTACKER_POINTS_COMMAND_STRING);
-		chatCommandManager.unregisterCommand(DEFENDER_POINTS_COMMAND_STRING);
-		chatCommandManager.unregisterCommand(COLLECTOR_POINTS_COMMAND_STRING);
-		chatCommandManager.unregisterCommand(HEALER_POINTS_COMMAND_STRING);
 		chatCommandManager.unregisterCommand(ROLE_POINTS_COMMAND_STRING);
 
 		restoreGroundItemsPluginLists();
@@ -1590,41 +1586,53 @@ public class BaMinigamePlugin extends Plugin
 		}
 	}
 
-	private void rolePointsLookup(ChatMessage chatMessage, String message)
+	private void rolesPointsLookup(ChatMessage chatMessage, String message)
 	{
 		if (!config.chatCommands())
 		{
 			return;
 		}
 
-		Role role;
-		message = message.toLowerCase(Locale.ROOT);
-		switch (message)
+		ChatMessageType type = chatMessage.getType();
+
+		final String player;
+		if (type == ChatMessageType.PRIVATECHATOUT)
 		{
-			case ATTACKER_POINTS_COMMAND_STRING:
-				role = Role.ATTACKER;
-				break;
-			case DEFENDER_POINTS_COMMAND_STRING:
-				role = Role.DEFENDER;
-				break;
-			case COLLECTOR_POINTS_COMMAND_STRING:
-				role = Role.COLLECTOR;
-				break;
-			case HEALER_POINTS_COMMAND_STRING:
-				role = Role.HEALER;
-				break;
-			default:
-				return;
+			player = client.getLocalPlayer().getName();
+		}
+		else
+		{
+			player = Text.sanitize(chatMessage.getName());
 		}
 
-		String points = String.valueOf(role.getPoints(client));
+		Roles roles;
+		try
+		{
+			roles = chatClient.getRoles(player);
+		}
+		catch (IOException ex)
+		{
+			log.debug("unable to lookup ba role points", ex);
+			return;
+		}
 
 		String response = new ChatMessageBuilder()
 				  .append(ChatColorType.NORMAL)
-				  .append(role.getName() + " points: ")
+				  .append(Role.ATTACKER.getName() + ": ")
 				  .append(ChatColorType.HIGHLIGHT)
-				  .append(points)
+				  .append(roles.getAttacker())
 				  .append(ChatColorType.NORMAL)
+				  .append("  " + Role.DEFENDER.getName() + ": ")
+				  .append(ChatColorType.HIGHLIGHT)
+				  .append(roles.getDefender())
+				  .append(ChatColorType.NORMAL)
+				  .append("  " + Role.COLLECTOR.getName() + ": ")
+				  .append(ChatColorType.HIGHLIGHT)
+				  .append(roles.getCollector())
+				  .append(ChatColorType.NORMAL)
+				  .append("  " + Role.HEALER.getName() + ": ")
+				  .append(ChatColorType.HIGHLIGHT)
+				  .append(roles.getHealer())
 				  .build();
 
 		final MessageNode messageNode = chatMessage.getMessageNode();
@@ -1633,41 +1641,32 @@ public class BaMinigamePlugin extends Plugin
 		client.refreshChat();
 	}
 
-	private void rolesPointsLookup(ChatMessage chatMessage, String message)
+	private boolean rolesSubmit(ChatInput chatInput, String value)
 	{
-		if (!config.chatCommands())
+		final int attacker = Role.ATTACKER.getPoints(client);
+		final int defender = Role.DEFENDER.getPoints(client);
+		final int collector = Role.COLLECTOR.getPoints(client);
+		final int healer = Role.HEALER.getPoints(client);
+
+		final String playerName = client.getLocalPlayer().getName();
+
+		executor.execute(() ->
 		{
-			return;
-		}
+			try
+			{
+				chatClient.submitRoles(playerName, attacker, defender, collector, healer);
+			}
+			catch (Exception ex)
+			{
+				log.warn("unable to submit ba role points", ex);
+			}
+			finally
+			{
+				chatInput.resume();
+			}
+		});
 
-		String attackerPoints = String.valueOf(Role.ATTACKER.getPoints(client));
-		String defenderPoints = String.valueOf(Role.DEFENDER.getPoints(client));
-		String collectorPoints = String.valueOf(Role.COLLECTOR.getPoints(client));
-		String healerPoints = String.valueOf(Role.HEALER.getPoints(client));
-
-		String response = new ChatMessageBuilder()
-				  .append(ChatColorType.NORMAL)
-				  .append(Role.ATTACKER.getName() + ": ")
-				  .append(ChatColorType.HIGHLIGHT)
-				  .append(attackerPoints)
-				  .append(ChatColorType.NORMAL)
-				  .append("  " + Role.DEFENDER.getName() + ": ")
-				  .append(ChatColorType.HIGHLIGHT)
-				  .append(defenderPoints)
-				  .append(ChatColorType.NORMAL)
-				  .append("  " + Role.COLLECTOR.getName() + ": ")
-				  .append(ChatColorType.HIGHLIGHT)
-				  .append(collectorPoints)
-				  .append(ChatColorType.NORMAL)
-				  .append("  " + Role.HEALER.getName() + ": ")
-				  .append(ChatColorType.HIGHLIGHT)
-				  .append(healerPoints)
-				  .build();
-
-		final MessageNode messageNode = chatMessage.getMessageNode();
-		messageNode.setRuneLiteFormatMessage(response);
-		chatMessageManager.update(messageNode);
-		client.refreshChat();
+		return true;
 	}
 
 }
