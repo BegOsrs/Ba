@@ -86,7 +86,6 @@ import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.events.ChatInput;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.input.KeyManager;
@@ -146,7 +145,6 @@ public class BaMinigamePlugin extends Plugin
 	private static final String[] BARBARIAN_ASSAULT_CONFIGS = {
 			  "showTimer", "showHealerBars", "waveTimes"
 	};
-	private static final String ROLE_POINTS_COMMAND_STRING = "!ba";
 
 	@Inject
 	private Client client;
@@ -166,8 +164,6 @@ public class BaMinigamePlugin extends Plugin
 	private ConfigManager configManager;
 	@Inject
 	private KeyManager keyManager;
-	@Inject
-	private ChatClient chatClient;
 
 	@Inject
 	private MenuEntrySwapper menuEntrySwapper;
@@ -185,10 +181,6 @@ public class BaMinigamePlugin extends Plugin
 	private TeamHealthBarOverlay teamHealthBarOverlay;
 	@Inject
 	private BaMinigameInputListener inputListener;
-	@Inject
-	private ChatCommandManager chatCommandManager;
-	@Inject
-	private ScheduledExecutorService executor;
 
 	@Getter
 	private final List<GameObject> hoppers = new ArrayList<>(2);
@@ -252,8 +244,6 @@ public class BaMinigamePlugin extends Plugin
 
 		keyManager.registerKeyListener(inputListener);
 
-		/*chatCommandManager.registerCommandAsync(ROLE_POINTS_COMMAND_STRING, this::rolesPointsLookup, this::rolesSubmit);*/
-
 		if (config.showGroundItemHighlights())
 		{
 			setGroundItemsPluginLists();
@@ -296,8 +286,6 @@ public class BaMinigamePlugin extends Plugin
 
 		lastListen = null;
 		lastListenItemId = 0;
-
-		/*chatCommandManager.unregisterCommand(ROLE_POINTS_COMMAND_STRING);*/
 
 		restoreGroundItemsPluginLists();
 		restoreBarbarianAssaultPluginFeatures();
@@ -1583,88 +1571,5 @@ public class BaMinigamePlugin extends Plugin
 			setHealerTeammatesHealthDisplay();
 		}
 	}
-
-	/*private void rolesPointsLookup(ChatMessage chatMessage, String message)
-	{
-		if (!config.chatCommands())
-		{
-			return;
-		}
-
-		ChatMessageType type = chatMessage.getType();
-
-		final String player;
-		if (type == ChatMessageType.PRIVATECHATOUT)
-		{
-			player = client.getLocalPlayer().getName();
-		}
-		else
-		{
-			player = Text.sanitize(chatMessage.getName());
-		}
-
-		Roles roles;
-		try
-		{
-			roles = chatClient.getRoles(player);
-		}
-		catch (IOException ex)
-		{
-			log.debug("unable to lookup ba role points", ex);
-			return;
-		}
-
-		String response = new ChatMessageBuilder()
-				  .append(ChatColorType.NORMAL)
-				  .append(Role.ATTACKER.getName() + ": ")
-				  .append(ChatColorType.HIGHLIGHT)
-				  .append(roles.getAttacker())
-				  .append(ChatColorType.NORMAL)
-				  .append("  " + Role.DEFENDER.getName() + ": ")
-				  .append(ChatColorType.HIGHLIGHT)
-				  .append(roles.getDefender())
-				  .append(ChatColorType.NORMAL)
-				  .append("  " + Role.COLLECTOR.getName() + ": ")
-				  .append(ChatColorType.HIGHLIGHT)
-				  .append(roles.getCollector())
-				  .append(ChatColorType.NORMAL)
-				  .append("  " + Role.HEALER.getName() + ": ")
-				  .append(ChatColorType.HIGHLIGHT)
-				  .append(roles.getHealer())
-				  .build();
-
-		final MessageNode messageNode = chatMessage.getMessageNode();
-		messageNode.setRuneLiteFormatMessage(response);
-		chatMessageManager.update(messageNode);
-		client.refreshChat();
-	}
-
-	private boolean rolesSubmit(ChatInput chatInput, String value)
-	{
-		final int attacker = Role.ATTACKER.getPoints(client);
-		final int defender = Role.DEFENDER.getPoints(client);
-		final int collector = Role.COLLECTOR.getPoints(client);
-		final int healer = Role.HEALER.getPoints(client);
-
-		final String playerName = client.getLocalPlayer().getName();
-
-		executor.execute(() ->
-		{
-			try
-			{
-				chatClient.submitRoles(playerName, attacker, defender, collector, healer);
-			}
-			catch (Exception ex)
-			{
-				log.warn("unable to submit ba role points", ex);
-			}
-			finally
-			{
-				chatInput.resume();
-			}
-		});
-
-		return true;
-	}*/
 
 }

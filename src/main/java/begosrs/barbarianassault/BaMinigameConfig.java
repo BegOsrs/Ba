@@ -77,17 +77,6 @@ public interface BaMinigameConfig extends Config
 		return true;
 	}
 
-	/*@ConfigItem(
-			  keyName = "chatCommands",
-			  name = "Roles chat command",
-			  description = "Type in !ba to check your roles points",
-			  position = 4
-	)
-	default boolean chatCommands()
-	{
-		return true;
-	}*/
-
 	@ConfigSection(
 			  name = "In-game",
 			  description = "Configurations related to features inside a barbarian assault game",
